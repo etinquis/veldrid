@@ -193,7 +193,8 @@ namespace Veldrid.OpenGL
                 subsetTextureView: _extensions.ARB_TextureView,
                 commandListDebugMarkers: _extensions.KHR_Debug || _extensions.EXT_DebugMarker,
                 bufferRangeBinding: _extensions.ARB_uniform_buffer_object,
-                shaderFloat64: _extensions.ARB_GpuShaderFp64);
+                shaderFloat64: _extensions.ARB_GpuShaderFp64,
+                cubeMapArrayTextures: _extensions.CubeMapArrayTexture);
 
             int uboAlignment;
             glGetIntegerv(GetPName.UniformBufferOffsetAlignment, &uboAlignment);
@@ -1424,6 +1425,16 @@ namespace Veldrid.OpenGL
                                                     texture.Texture,
                                                     (int)mipLevel,
                                                     (int)curLayer);
+                                                CheckLastError();
+                                            }
+                                            else if((texture.Usage & TextureUsage.Cubemap) != 0)
+                                            {
+                                                glFramebufferTexture2D(
+                                                    FramebufferTarget.ReadFramebuffer,
+                                                    GLFramebufferAttachment.ColorAttachment0,
+                                                    GetTextureTarget(texture, curLayer),
+                                                    texture.Texture,
+                                                    (int)mipLevel);
                                                 CheckLastError();
                                             }
                                             else if (texture.Type == TextureType.Texture1D)

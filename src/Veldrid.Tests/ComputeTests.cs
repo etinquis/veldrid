@@ -29,9 +29,11 @@ namespace Veldrid.Tests
 
     public abstract class ComputeTests<T> : GraphicsDeviceTestBase<T> where T : GraphicsDeviceCreator
     {
-        [Fact]
+        [SkippableFact]
         public void ComputeShader3dTexture()
         {
+            Skip.IfNot(GD.Features.ComputeShader);
+
             // Just a dumb compute shader that fills a 3D texture with the same value from a uniform multiplied by the depth.
             string shaderText = @"
 #version 450

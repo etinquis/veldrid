@@ -1,8 +1,8 @@
 ﻿using System;
-using static Veldrid.OpenGLBinding.OpenGLNative;
-using static Veldrid.OpenGL.OpenGLUtil;
-using Veldrid.OpenGLBinding;
 using System.Text;
+using Veldrid.OpenGLBinding;
+using static Veldrid.OpenGL.OpenGLUtil;
+using static Veldrid.OpenGLBinding.OpenGLNative;
 
 namespace Veldrid.OpenGL
 {
@@ -853,77 +853,77 @@ namespace Veldrid.OpenGL
                 switch (kind)
                 {
                     case ResourceKind.UniformBuffer:
-                    {
-                        if (!isNew) { continue; }
-
-                        DeviceBufferRange range = Util.GetBufferRange(resource, bufferOffset);
-                        OpenGLBuffer glUB = Util.AssertSubtype<DeviceBuffer, OpenGLBuffer>(range.Buffer);
-
-                        glUB.EnsureResourcesCreated();
-                        if (pipeline.GetUniformBindingForSlot(slot, element, out OpenGLUniformBinding uniformBindingInfo))
                         {
-                            if (range.SizeInBytes < uniformBindingInfo.BlockSize)
+                            if (!isNew) { continue; }
+
+                            DeviceBufferRange range = Util.GetBufferRange(resource, bufferOffset);
+                            OpenGLBuffer glUB = Util.AssertSubtype<DeviceBuffer, OpenGLBuffer>(range.Buffer);
+
+                            glUB.EnsureResourcesCreated();
+                            if (pipeline.GetUniformBindingForSlot(slot, element, out OpenGLUniformBinding uniformBindingInfo))
                             {
-                                string name = glResourceSet.Layout.Elements[element].Name;
-                                throw new VeldridException(
-                                    $"Not enough data in uniform buffer \"{name}\" (slot {slot}, element {element}). Shader expects at least {uniformBindingInfo.BlockSize} bytes, but buffer only contains {range.SizeInBytes} bytes");
+                                if (range.SizeInBytes < uniformBindingInfo.BlockSize)
+                                {
+                                    string name = glResourceSet.Layout.Elements[element].Name;
+                                    throw new VeldridException(
+                                        $"Not enough data in uniform buffer \"{name}\" (slot {slot}, element {element}). Shader expects at least {uniformBindingInfo.BlockSize} bytes, but buffer only contains {range.SizeInBytes} bytes");
+                                }
+                                glUniformBlockBinding(pipeline.Program, uniformBindingInfo.BlockLocation, ubBaseIndex + ubOffset);
+                                CheckLastError();
+
+                                glBindBufferRange(
+                                    BufferRangeTarget.UniformBuffer,
+                                    ubBaseIndex + ubOffset,
+                                    glUB.Buffer,
+                                    (IntPtr)range.Offset,
+                                    (UIntPtr)range.SizeInBytes);
+                                CheckLastError();
+
+                                ubOffset += 1;
                             }
-                            glUniformBlockBinding(pipeline.Program, uniformBindingInfo.BlockLocation, ubBaseIndex + ubOffset);
-                            CheckLastError();
-
-                            glBindBufferRange(
-                                BufferRangeTarget.UniformBuffer,
-                                ubBaseIndex + ubOffset,
-                                glUB.Buffer,
-                                (IntPtr)range.Offset,
-                                (UIntPtr)range.SizeInBytes);
-                            CheckLastError();
-
-                            ubOffset += 1;
+                            break;
                         }
-                        break;
-                    }
                     case ResourceKind.StructuredBufferReadWrite:
                     case ResourceKind.StructuredBufferReadOnly:
-                    {
-                        if (!isNew) { continue; }
-
-                        DeviceBufferRange range = Util.GetBufferRange(resource, bufferOffset);
-                        OpenGLBuffer glBuffer = Util.AssertSubtype<DeviceBuffer, OpenGLBuffer>(range.Buffer);
-
-                        glBuffer.EnsureResourcesCreated();
-                        if (pipeline.GetStorageBufferBindingForSlot(slot, element, out OpenGLShaderStorageBinding shaderStorageBinding))
                         {
-                            if (_backend == GraphicsBackend.OpenGL)
-                            {
-                                glShaderStorageBlockBinding(
-                                    pipeline.Program,
-                                    shaderStorageBinding.StorageBlockBinding,
-                                    ssboBaseIndex + ssboOffset);
-                                CheckLastError();
+                            if (!isNew) { continue; }
 
-                                glBindBufferRange(
-                                    BufferRangeTarget.ShaderStorageBuffer,
-                                    ssboBaseIndex + ssboOffset,
-                                    glBuffer.Buffer,
-                                    (IntPtr)range.Offset,
-                                    (UIntPtr)range.SizeInBytes);
-                                CheckLastError();
-                            }
-                            else
+                            DeviceBufferRange range = Util.GetBufferRange(resource, bufferOffset);
+                            OpenGLBuffer glBuffer = Util.AssertSubtype<DeviceBuffer, OpenGLBuffer>(range.Buffer);
+
+                            glBuffer.EnsureResourcesCreated();
+                            if (pipeline.GetStorageBufferBindingForSlot(slot, element, out OpenGLShaderStorageBinding shaderStorageBinding))
                             {
-                                glBindBufferRange(
-                                    BufferRangeTarget.ShaderStorageBuffer,
-                                    shaderStorageBinding.StorageBlockBinding,
-                                    glBuffer.Buffer,
-                                    (IntPtr)range.Offset,
-                                    (UIntPtr)range.SizeInBytes);
-                                CheckLastError();
+                                if (_backend == GraphicsBackend.OpenGL)
+                                {
+                                    glShaderStorageBlockBinding(
+                                        pipeline.Program,
+                                        shaderStorageBinding.StorageBlockBinding,
+                                        ssboBaseIndex + ssboOffset);
+                                    CheckLastError();
+
+                                    glBindBufferRange(
+                                        BufferRangeTarget.ShaderStorageBuffer,
+                                        ssboBaseIndex + ssboOffset,
+                                        glBuffer.Buffer,
+                                        (IntPtr)range.Offset,
+                                        (UIntPtr)range.SizeInBytes);
+                                    CheckLastError();
+                                }
+                                else
+                                {
+                                    glBindBufferRange(
+                                        BufferRangeTarget.ShaderStorageBuffer,
+                                        shaderStorageBinding.StorageBlockBinding,
+                                        glBuffer.Buffer,
+                                        (IntPtr)range.Offset,
+                                        (UIntPtr)range.SizeInBytes);
+                                    CheckLastError();
+                                }
+                                ssboOffset += 1;
                             }
-                            ssboOffset += 1;
+                            break;
                         }
-                        break;
-                    }
                     case ResourceKind.TextureReadOnly:
                         TextureView texView = Util.GetTextureView(_gd, resource);
                         OpenGLTextureView glTexView = Util.AssertSubtype<TextureView, OpenGLTextureView>(texView);
@@ -1502,7 +1502,7 @@ namespace Veldrid.OpenGL
             srcGLTexture.EnsureResourcesCreated();
             dstGLTexture.EnsureResourcesCreated();
 
-            if (_extensions.CopyImage && depth == 1)
+            if (_extensions.CopyImage && depth == 1 && (srcGLTexture.Usage & TextureUsage.DepthStencil) != TextureUsage.DepthStencil)
             {
                 // glCopyImageSubData does not work properly when depth > 1, so use the awful roundabout copy.
                 uint srcZOrLayer = Math.Max(srcBaseArrayLayer, srcZ);
@@ -1641,7 +1641,7 @@ namespace Veldrid.OpenGL
             }
             else // !isCompressed
             {
-                if (_extensions.ARB_DirectStateAccess)
+                if (_extensions.ARB_DirectStateAccess && (srcGLTexture.Usage & TextureUsage.DepthStencil) != TextureUsage.DepthStencil)
                 {
                     glGetTextureSubImage(
                         srcGLTexture.Texture, (int)srcMipLevel, (int)srcX, (int)srcY, (int)srcZ,
@@ -1660,12 +1660,24 @@ namespace Veldrid.OpenGL
                         glBindFramebuffer(FramebufferTarget.ReadFramebuffer, readFB);
                         CheckLastError();
 
-                        if (srcGLTexture.ArrayLayers > 1 || srcGLTexture.Type == TextureType.Texture3D
+                        var framebufferAttachment = (srcGLTexture.Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil ? GLFramebufferAttachment.DepthAttachment : GLFramebufferAttachment.ColorAttachment0;
+
+                        if ((srcGLTexture.Usage & TextureUsage.Cubemap) != 0 && srcGLTexture.ArrayLayers == 1)
+                        {
+                            glFramebufferTexture2D(
+                                FramebufferTarget.ReadFramebuffer,
+                                framebufferAttachment,
+                                GetTextureTarget(srcGLTexture, curLayer),
+                                srcGLTexture.Texture,
+                                (int)srcMipLevel);
+                            CheckLastError();
+                        }
+                        else if (srcGLTexture.ArrayLayers > 1 || srcGLTexture.Type == TextureType.Texture3D
                             || (srcGLTexture.Usage & TextureUsage.Cubemap) != 0)
                         {
                             glFramebufferTextureLayer(
                                 FramebufferTarget.ReadFramebuffer,
-                                GLFramebufferAttachment.ColorAttachment0,
+                                framebufferAttachment,
                                 srcGLTexture.Texture,
                                 (int)srcMipLevel,
                                 (int)curLayer);
@@ -1675,7 +1687,7 @@ namespace Veldrid.OpenGL
                         {
                             glFramebufferTexture1D(
                                 FramebufferTarget.ReadFramebuffer,
-                                GLFramebufferAttachment.ColorAttachment0,
+                                framebufferAttachment,
                                 TextureTarget.Texture1D,
                                 srcGLTexture.Texture,
                                 (int)srcMipLevel);
@@ -1685,7 +1697,7 @@ namespace Veldrid.OpenGL
                         {
                             glFramebufferTexture2D(
                                 FramebufferTarget.ReadFramebuffer,
-                                GLFramebufferAttachment.ColorAttachment0,
+                                framebufferAttachment,
                                 TextureTarget.Texture2D,
                                 srcGLTexture.Texture,
                                 (int)srcMipLevel);
