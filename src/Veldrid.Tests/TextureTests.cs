@@ -161,6 +161,71 @@ namespace Veldrid.Tests
         }
 
         [SkippableFact]
+        public void RenderFromTextureViewOfTextureWithArrayLayers()
+        {
+            const uint TexSize = 4;
+            const uint MipLevels = 1;
+            const uint ArrayLayers = 2;
+
+            TextureDescription texDesc = TextureDescription.Texture2D(
+                TexSize, TexSize, MipLevels, ArrayLayers, PixelFormat.R8_UNorm, TextureUsage.Storage | TextureUsage.Sampled);
+            Texture tex = RF.CreateTexture(texDesc);
+
+            byte[] data = Enumerable.Repeat(42, (int)(TexSize * TexSize)).Select(n => (byte)n).ToArray();
+            GD.UpdateTexture(tex, data, 0, 0, 0, TexSize, TexSize, 1, 0, 0);
+
+            var view = RF.CreateTextureView(new TextureViewDescription(tex, baseMipLevel: 0, mipLevels: 1, baseArrayLayer: 0, arrayLayers: 1));
+
+            texDesc.Usage |= TextureUsage.RenderTarget;
+            texDesc.ArrayLayers = 1;
+            Texture finalOutput = RF.CreateTexture(texDesc);
+            Framebuffer framebuffer = RF.CreateFramebuffer(new FramebufferDescription(null, finalOutput));
+
+            ResourceLayout graphicsLayout = RF.CreateResourceLayout(new ResourceLayoutDescription(
+                new ResourceLayoutElementDescription("Input", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
+                new ResourceLayoutElementDescription("InputSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
+            ResourceSet graphicsSet = RF.CreateResourceSet(new ResourceSetDescription(graphicsLayout, view, GD.PointSampler));
+
+            Pipeline graphicsPipeline = RF.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+                BlendStateDescription.SingleOverrideBlend,
+                DepthStencilStateDescription.Disabled,
+                RasterizerStateDescription.CullNone,
+                PrimitiveTopology.TriangleStrip,
+                new ShaderSetDescription(
+                    Array.Empty<VertexLayoutDescription>(),
+                    TestShaders.LoadVertexFragment(RF, "FullScreenBlit")),
+                graphicsLayout,
+                framebuffer.OutputDescription));
+
+            CommandList cl = RF.CreateCommandList();
+            cl.Begin();
+            cl.SetFramebuffer(framebuffer);
+            cl.ClearColorTarget(0, new RgbaFloat());
+            cl.SetPipeline(graphicsPipeline);
+            cl.SetGraphicsResourceSet(0, graphicsSet);
+            cl.Draw(4);
+            cl.End();
+            GD.SubmitCommands(cl);
+            GD.WaitForIdle();
+
+            var readback = GetReadback(finalOutput);
+
+            var subresource = readback.CalculateSubresource(0, 0);
+            byte expectedColor = 42;
+            var map = GD.Map<byte>(readback, MapMode.Read, subresource);
+
+            foreach (var x in Enumerable.Range(0, (int)TexSize))
+            {
+                foreach (var y in Enumerable.Range(0, (int)TexSize))
+                {
+                    Assert.Equal(expectedColor, map[x, y]);
+                }
+            }
+
+            GD.Unmap(readback, subresource);
+        }
+
+        [SkippableFact]
         public void CubeMap_UpdateAndRead()
         {
             const uint TexSize = 4;
@@ -225,7 +290,7 @@ namespace Veldrid.Tests
                 }
             }
 
-            var view = RF.CreateTextureView(new TextureViewDescription(tex, 0, 1, 0, 1));
+            var view = RF.CreateTextureView(new TextureViewDescription(tex, baseMipLevel: 0, mipLevels: 1, baseArrayLayer: 0, arrayLayers: 1));
             Assert.NotNull(view);
         }
 
