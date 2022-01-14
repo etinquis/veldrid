@@ -1660,7 +1660,17 @@ namespace Veldrid.OpenGL
                         glBindFramebuffer(FramebufferTarget.ReadFramebuffer, readFB);
                         CheckLastError();
 
-                        if (srcGLTexture.ArrayLayers > 1 || srcGLTexture.Type == TextureType.Texture3D
+                        if (srcGLTexture.ArrayLayers == 1 && (srcGLTexture.Usage & TextureUsage.Cubemap) != 0)
+                        {
+                            glFramebufferTexture2D(
+                                FramebufferTarget.ReadFramebuffer,
+                                GLFramebufferAttachment.ColorAttachment0,
+                                GetCubeTarget(curLayer),
+                                srcGLTexture.Texture,
+                                (int)srcMipLevel);
+                            CheckLastError();
+                        }
+                        else if (srcGLTexture.ArrayLayers > 1 || srcGLTexture.Type == TextureType.Texture3D
                             || (srcGLTexture.Usage & TextureUsage.Cubemap) != 0)
                         {
                             glFramebufferTextureLayer(

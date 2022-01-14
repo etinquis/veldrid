@@ -726,10 +726,7 @@ namespace Veldrid.Tests
         [SkippableFact]
         public void ComputeGeneratedVertices()
         {
-            if (!GD.Features.ComputeShader)
-            {
-                return;
-            }
+            Skip.IfNot(GD.Features.ComputeShader);
 
             uint width = 512;
             uint height = 512;
