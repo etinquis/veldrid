@@ -417,6 +417,18 @@ namespace Veldrid.Tests
                 }
             }
 
+            { // zero-init dst
+                for (uint mip = 0; mip < MipLevels; mip++)
+                {
+                    var mipSize = (uint)(TexSize / (1 << (int)mip));
+                    byte[] data = Enumerable.Repeat(0, (int)(mipSize * mipSize)).Select(n => (byte)n).ToArray();
+                    for (uint face = 0; face < 6; face++)
+                    {
+                        GD.UpdateTexture(dst, data, 0, 0, 0, mipSize, mipSize, 1, mip, face);
+                    }
+                }
+            }
+
             CommandList cl = RF.CreateCommandList();
             cl.Begin();
             for (uint face = 0; face < 6; face++)
