@@ -163,6 +163,8 @@ namespace Veldrid.Tests
         [SkippableFact]
         public void RenderFromTextureViewOfTextureWithArrayLayers()
         {
+            Skip.IfNot(GD.Features.SubsetTextureView);
+
             const uint TexSize = 4;
             const uint MipLevels = 1;
             const uint ArrayLayers = 2;
@@ -528,6 +530,18 @@ namespace Veldrid.Tests
                 {
                     byte[] data = Enumerable.Repeat((face + 1) * 42, (int)(mipSize * mipSize)).Select(n => (byte)n).ToArray();
                     GD.UpdateTexture(src, data, 0, 0, 0, mipSize, mipSize, 1, mip, face);
+                }
+            }
+
+            { // zero-init dst
+                for (uint mip = 0; mip < MipLevels; mip++)
+                {
+                    var mipSize = (uint)(TexSize / (1 << (int)mip));
+                    byte[] data = Enumerable.Repeat(0, (int)(mipSize * mipSize)).Select(n => (byte)n).ToArray();
+                    for (uint face = 0; face < (CopiedArrayLayer + 1); face++)
+                    {
+                        GD.UpdateTexture(dst, data, 0, 0, 0, mipSize, mipSize, 1, mip, face);
+                    }
                 }
             }
 
